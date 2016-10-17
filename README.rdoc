@@ -1,28 +1,25 @@
-== README
+== Introduction
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+While doing some work with ActiveRecord I discovered that using eager_load()
+when a model has two different relations to another model causes problems.
 
-Things you may want to cover:
+Tracked here:
+https://github.com/rails/rails/issues/26805
 
-* Ruby version
+A failing test shows the issue.
 
-* System dependencies
+== Summary of the issue
+If ModelA has_many of ModelB and it also has a column which references one of
+ModelB, using eager_load for both properties returns an instance of ModelA that
+isn't fully populated.  The object that should be present both in the list of
+ModelBs and in the single property does not exist in the array in memory!
 
-* Configuration
+Objects:
+  TestA has_many(:test_bs) and belongs_to(:one_test_b)
+  TestB belongs_to(:test_a)
 
-* Database creation
-
-* Database initialization
-
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
-
-
-Please feel free to use a different markup language if you do not plan to run
-<tt>rake doc:app</tt>.
+Test code:
+  # Given one TestA with 2 TestBs, one of which is also set as one_test_b
+  t = TestA.eager_load(:test_bs, :one_model_b).first
+  t.test_bs.length
+  => 1  # should be 2
